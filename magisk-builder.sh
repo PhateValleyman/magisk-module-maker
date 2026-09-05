@@ -1,4 +1,4 @@
-#!/data/data/com.termux/files/usr/bin/bash
+#!/usr/bin/env bash
 # Magisk Module Builder Ultimate
 # Verze 1.0
 # Autor: Váš projekt
@@ -19,6 +19,13 @@ elif command -v whiptail &>/dev/null; then
 else
     echo "ERROR: Ani dialog ani whiptail není nainstalován."
     echo "Nainstalujte: pkg install dialog"
+    exit 1
+fi
+
+# Kontrola nástroje zip
+if ! command -v zip &>/dev/null; then
+    echo "ERROR: Nástroj 'zip' není nainstalován."
+    echo "Nainstalujte: pkg install zip"
     exit 1
 fi
 
@@ -92,7 +99,6 @@ init_project() {
         msgbox "Chyba" "Projekt již existuje."
         return
     fi
-    mkdir -p "$PROJECT_DIR"
     mkdir -p "$PROJECT_DIR"/{system,system_ext,product,vendor,zygisk,META-INF}
     # Vytvoření databází
     touch "$PROJECT_DIR/.permissions.db"
@@ -164,6 +170,25 @@ db_list_perms() {
     msgbox "Seznam oprávnění" "$content"
 }
 
+db_del_perm() {
+    if [[ ! -s "$PROJECT_DIR/.permissions.db" ]]; then
+        msgbox "Info" "Žádná oprávnění k odstranění."
+        return
+    fi
+    local menu_args=()
+    local i=1
+    while read -r line; do
+        menu_args+=("$i" "$line")
+        ((i++))
+    done < "$PROJECT_DIR/.permissions.db"
+    
+    local chosen=$(menu "Odstranit oprávnění" "Vyberte položku k odstranění:" "${menu_args[@]}")
+    if [[ -n "$chosen" ]]; then
+        sed -i "${chosen}d" "$PROJECT_DIR/.permissions.db"
+        msgbox "OK" "Oprávnění odstraněno."
+    fi
+}
+
 db_add_context() {
     local path context
     path=$(inputbox "Přidat SELinux kontext" "Cesta (např. system/bin/tool):")
@@ -183,6 +208,25 @@ db_list_contexts() {
     msgbox "Seznam kontextů" "$content"
 }
 
+db_del_context() {
+    if [[ ! -s "$PROJECT_DIR/.contexts.db" ]]; then
+        msgbox "Info" "Žádné kontexty k odstranění."
+        return
+    fi
+    local menu_args=()
+    local i=1
+    while read -r line; do
+        menu_args+=("$i" "$line")
+        ((i++))
+    done < "$PROJECT_DIR/.contexts.db"
+    
+    local chosen=$(menu "Odstranit kontext" "Vyberte položku k odstranění:" "${menu_args[@]}")
+    if [[ -n "$chosen" ]]; then
+        sed -i "${chosen}d" "$PROJECT_DIR/.contexts.db"
+        msgbox "OK" "Kontext odstraněn."
+    fi
+}
+
 db_add_replace() {
     local path=$(inputbox "Přidat REPLACE" "Zadejte cestu (např. /system/app/Foo):")
     [[ -z "$path" ]] && return
@@ -196,6 +240,25 @@ db_list_replace() {
         return
     fi
     msgbox "REPLACE seznam" "$(cat "$PROJECT_DIR/.replace.db")"
+}
+
+db_del_replace() {
+    if [[ ! -s "$PROJECT_DIR/.replace.db" ]]; then
+        msgbox "Info" "Žádné REPLACE položky k odstranění."
+        return
+    fi
+    local menu_args=()
+    local i=1
+    while read -r line; do
+        menu_args+=("$i" "$line")
+        ((i++))
+    done < "$PROJECT_DIR/.replace.db"
+    
+    local chosen=$(menu "Odstranit REPLACE" "Vyberte položku k odstranění:" "${menu_args[@]}")
+    if [[ -n "$chosen" ]]; then
+        sed -i "${chosen}d" "$PROJECT_DIR/.replace.db"
+        msgbox "OK" "REPLACE položka odstraněna."
+    fi
 }
 
 # -------------------- SPRÁVA SOUBORŮ / ADRESÁŘŮ --------------------
@@ -270,7 +333,9 @@ show_tree() {
         local output=$(tree -n "$PROJECT_DIR" 2>/dev/null || echo "tree není k dispozici")
         msgbox "Strom projektu" "$output"
     else
-        local output=$(find "$PROJECT_DIR" -type d | sed "s|$PROJECT_DIR/||" | sort)
+        # Vylepšený fallback pomocí find
+        local output=$(find "$PROJECT_DIR" -maxdepth 4 -not -path '*/.*' | sed "s|$PROJECT_DIR||" | sort)
+        [[ -z "$output" ]] && output="Projekt je prázdný."
         msgbox "Strom projektu (find)" "$output"
     fi
 }
@@ -330,9 +395,7 @@ generate_customize() {
     cat > "$file" <<'EOF'
 #!/system/bin/sh
 # Magisk Module Customize Script
-
-# This script will be executed in late_start service mode
-# More info in the official Magisk documentation
+# Tento skript je spouštěn během instalace modulu.
 
 MODPATH=${0%/*}
 
@@ -392,13 +455,21 @@ build_module() {
     # Generovat customize.sh
     generate_customize
 
-    # Generovat updater-script (minimální)
+    # Generovat updater-script a update-binary (vyžadováno Magiskem)
     local meta_dir="${PROJECT_DIR}/META-INF/com/google/android"
     mkdir -p "$meta_dir"
     cat > "${meta_dir}/updater-script" <<'EOF'
 #MAGISK
 # This is a dummy updater-script for Magisk modules
 EOF
+    cat > "${meta_dir}/update-binary" <<'EOF'
+#!/system/bin/sh
+# Magisk Module update-binary wrapper
+MODPATH=${0%/*}
+# Tento skript je spouštěn Magiskem při instalaci.
+# Většina logiky je v customize.sh.
+EOF
+    chmod +x "${meta_dir}/update-binary"
 
     # Vytvoření ZIP
     local version=$(grep '^version=' "$PROJECT_DIR/module.prop" | cut -d= -f2- | tr -d ' ')
@@ -510,11 +581,13 @@ perm_menu() {
             "Vyberte akci:" \
             "1" "Přidat oprávnění" \
             "2" "Vypsat oprávnění" \
-            "3" "Zpět")
+            "3" "Odstranit oprávnění" \
+            "4" "Zpět")
         case "$choice" in
             1) db_add_perm ;;
             2) db_list_perms ;;
-            3|"") break ;;
+            3) db_del_perm ;;
+            4|"") break ;;
             *) msgbox "Chyba" "Neplatná volba." ;;
         esac
     done
@@ -526,11 +599,13 @@ selinux_menu() {
             "Vyberte akci:" \
             "1" "Přidat kontext" \
             "2" "Vypsat kontexty" \
-            "3" "Zpět")
+            "3" "Odstranit kontext" \
+            "4" "Zpět")
         case "$choice" in
             1) db_add_context ;;
             2) db_list_contexts ;;
-            3|"") break ;;
+            3) db_del_context ;;
+            4|"") break ;;
             *) msgbox "Chyba" "Neplatná volba." ;;
         esac
     done
@@ -542,11 +617,13 @@ replace_menu() {
             "Vyberte akci:" \
             "1" "Přidat REPLACE položku" \
             "2" "Vypsat REPLACE položky" \
-            "3" "Zpět")
+            "3" "Odstranit REPLACE položku" \
+            "4" "Zpět")
         case "$choice" in
             1) db_add_replace ;;
             2) db_list_replace ;;
-            3|"") break ;;
+            3) db_del_replace ;;
+            4|"") break ;;
             *) msgbox "Chyba" "Neplatná volba." ;;
         esac
     done
