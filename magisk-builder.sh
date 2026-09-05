@@ -12,13 +12,15 @@ DIALOG="${DIALOG:-dialog}"
 WHIPTAIL="${WHIPTAIL:-whiptail}"
 
 # Pokus o detekci dostupného TUI nástroje
-if command -v dialog &>/dev/null; then
+if command -v fzf &>/dev/null; then
+    TUI="fzf"
+elif command -v dialog &>/dev/null; then
     TUI="dialog"
 elif command -v whiptail &>/dev/null; then
     TUI="whiptail"
 else
-    echo "ERROR: Ani dialog ani whiptail není nainstalován."
-    echo "Nainstalujte: pkg install dialog"
+    echo "ERROR: Žádný podporovaný TUI nástroj (fzf, dialog, whiptail) není nainstalován."
+    echo "Nainstalujte např.: pkg install fzf"
     exit 1
 fi
 
@@ -74,7 +76,14 @@ menu() {
     shift 2
     local args=("$@")
     local output
-    if [[ "$TUI" == "dialog" ]]; then
+    if [[ "$TUI" == "fzf" ]]; then
+        # Pro fzf musíme převést dvojice (klíč hodnota) na řádky pro výběr
+        local fzf_input=""
+        for ((i=0; i<${#args[@]}; i+=2)); do
+            fzf_input+="${args[i]}) ${args[i+1]}\n"
+        done
+        output=$(echo -e "$fzf_input" | fzf --header="$title: $prompt" --reverse | cut -d')' -f1)
+    elif [[ "$TUI" == "dialog" ]]; then
         output=$(dialog --title "$title" --menu "$prompt" 20 60 10 "${args[@]}" 3>&1 1>&2 2>&3)
     else
         output=$(whiptail --title "$title" --menu "$prompt" 20 60 10 "${args[@]}" 3>&1 1>&2 2>&3)
