@@ -41,7 +41,7 @@ while true; do
   echo "6) Konec"
   read -p "Vyberte [1-6]: " volba
   case "$volba" in
-    1) safe_input "Cesta" path ""; safe_input "UID" uid 0; safe_input "GID" gid 0; safe_input "Mód" mode "$DEFAULT_MODE" validate_mode; safe_input "Typ" type file; db_add_item "$ITEMS_DB" "$path" "$uid" "$gid" "$mode" "$type"; read -p "Enter..." ;;
+    1) safe_input "Cesta" path ""; safe_input "UID" uid 0; safe_input "GID" gid 0; safe_input "Mód" mode "$DEFAULT_MODE" validate_mode; type=$(fzf_menu "Typ položky" "file:Soubor" "dir:Adresář"); [[ -n "$type" ]] && db_add_item "$ITEMS_DB" "$path" "$uid" "$gid" "$mode" "$type"; read -p "Enter..." ;;
     2) polozky=$(db_list_items "$ITEMS_DB"); [[ -z "$polozky" ]] && { print_warn "Prázdné."; read -p "Enter..."; continue; }; vybrana=$(echo "$polozky" | fzf --prompt="Smazat: "); [[ -n "$vybrana" ]] && db_remove_item "$ITEMS_DB" "$vybrana"; read -p "Enter..." ;;
     3) db_list_items "$ITEMS_DB" | nl; read -p "Enter..." ;;
     4) build_module "$PROJECT_NAME" "$OUTPUT_DIR" "$ITEMS_DB" "$CONFIG_FILE"; read -p "Enter..." ;;

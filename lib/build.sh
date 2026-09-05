@@ -20,15 +20,31 @@ PROP
   local IFS=,
   tail -n +2 "$items_db" | while read path uid gid mode type; do
     local target="$module_dir/$path"
-    mkdir -p "$(dirname "$target")"
-    if [[ "$type" == "file" ]] && [[ -f "$path" ]]; then
-      cp "$path" "$target"; chmod "$mode" "$target"; print_ok "Kopíruji: $path"
-    elif [[ "$type" == "dir" ]]; then
+    if [[ "$type" == "file" ]]; then
+      mkdir -p "$(dirname "$target")"
+      if [[ -f "$path" ]]; then
+        cp "$path" "$target"; chmod "$mode" "$target"; print_ok "Kopíruji: $path"
+      else
+        touch "$target"; chmod "$mode" "$target"; print_warn "Vytvářím prázdný: $path"
+      fi
+    elif [[ "$type" == "dir" ]] || [[ "$type" == "directory" ]]; then
       mkdir -p "$target"; chmod "$mode" "$target"; print_ok "Adresář: $path"
-    else
-      print_warn "Soubor chybí: $path"
     fi
   done
+
+  # Magisk specifikace
+  local meta_dir="$module_dir/META-INF/com/google/android"
+  mkdir -p "$meta_dir"
+  cat > "$meta_dir/updater-script" <<'EOF'
+#MAGISK
+EOF
+  cat > "$meta_dir/update-binary" <<'EOF'
+#!/system/bin/sh
+MODPATH=${0%/*}
+EOF
+  chmod 0755 "$meta_dir/update-binary"
+  print_ok "Meta-inf vytvořen"
+
   if find "$module_dir" -name "*.so" | grep -q .; then
     local abi=""
     [[ -d "$module_dir/system/lib64" ]] && abi="arm64-v8a"
