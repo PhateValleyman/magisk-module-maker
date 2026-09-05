@@ -265,9 +265,9 @@ show_tree() {
         msgbox "Chyba" "Není načten žádný projekt."
         return
     fi
-    # Zobrazíme strom adresářů (použijeme tree pokud existuje, jinak ls -R)
     if command -v tree &>/dev/null; then
-        local output=$(tree -C "$PROJECT_DIR" 2>/dev/null || echo "tree není k dispozici")
+        # Použijeme -n pro vypnutí barev
+        local output=$(tree -n "$PROJECT_DIR" 2>/dev/null || echo "tree není k dispozici")
         msgbox "Strom projektu" "$output"
     else
         local output=$(find "$PROJECT_DIR" -type d | sed "s|$PROJECT_DIR/||" | sort)
