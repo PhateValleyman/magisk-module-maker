@@ -1,0 +1,172 @@
+<TaskerData sr="tasker_version" dmetric="1080,2280">
+	<Project sr="proj0" ve="2">
+		<cdate>1693910400000</cdate>
+		<name>Magisk Module Maker</name>
+		<pids></pids>
+		<tids>1,2,3,4,5</tids>
+		<scenes>Main,Editor,Terminal</scenes>
+	</Project>
+
+	<!-- TASK: Initialize Project -->
+	<Task sr="task1">
+		<cdate>1693910400000</cdate>
+		<id>1</id>
+		<nme>MMM_Init</nme>
+		<Action sr="act0" ve="7">
+			<code>547</code>
+			<Str sr="arg0" ve="3">%MMM_BASE_DIR</Str>
+			<Str sr="arg1" ve="3">/sdcard/MagiskBuild/%MMM_PROJECT_NAME</Str>
+			<Int sr="arg2" val="0"/>
+			<Int sr="arg3" val="0"/>
+		</Action>
+		<Action sr="act1" ve="7">
+			<code>123</code>
+			<Str sr="arg0" ve="3">mkdir -p %MMM_BASE_DIR/system %MMM_BASE_DIR/META-INF/com/google/android</Str>
+			<Int sr="arg1" val="0"/>
+			<Int sr="arg2" val="0"/>
+			<Str sr="arg3" ve="3"/>
+			<Str sr="arg4" ve="3"/>
+			<Int sr="arg5" val="0"/>
+		</Action>
+		<Action sr="act2" ve="7">
+			<code>548</code>
+			<Str sr="arg0" ve="3">Projekt %MMM_PROJECT_NAME inicializován</Str>
+			<Int sr="arg1" val="0"/>
+		</Action>
+	</Task>
+
+	<!-- TASK: Add Item -->
+	<Task sr="task2">
+		<cdate>1693910400000</cdate>
+		<id>2</id>
+		<nme>MMM_AddItem</nme>
+		<Action sr="act0" ve="7">
+			<code>547</code>
+			<Str sr="arg0" ve="3">%MMM_ITEMS</Str>
+			<Str sr="arg1" ve="3">%MMM_NEW_PATH,%MMM_NEW_UID,%MMM_NEW_GID,%MMM_NEW_MODE</Str>
+			<Int sr="arg2" val="0"/>
+			<Int sr="arg3" val="1"/> <!-- Append -->
+		</Action>
+		<Action sr="act1" ve="7">
+			<code>547</code>
+			<Str sr="arg0" ve="3">%MMM_ITEMS</Str>
+			<Str sr="arg1" ve="3">|</Str>
+			<Int sr="arg2" val="0"/>
+			<Int sr="arg3" val="1"/> <!-- Append separator -->
+		</Action>
+		<Action sr="act2" ve="7">
+			<code>548</code>
+			<Str sr="arg0" ve="3">Položka přidána</Str>
+			<Int sr="arg1" val="0"/>
+		</Action>
+	</Task>
+
+	<!-- TASK: Build ZIP -->
+	<Task sr="task3">
+		<cdate>1693910400000</cdate>
+		<id>3</id>
+		<nme>MMM_Build</nme>
+		<Action sr="act0" ve="7">
+			<code>548</code>
+			<Str sr="arg0" ve="3">Sestavování modulu...</Str>
+			<Int sr="arg1" val="0"/>
+		</Action>
+		<!-- Generate module.prop -->
+		<Action sr="act1" ve="7">
+			<code>410</code>
+			<Str sr="arg0" ve="3">%MMM_BASE_DIR/module.prop</Str>
+			<Str sr="arg1" ve="3">id=%MMM_PROJECT_NAME
+name=%MMM_PROJECT_NAME
+version=1.0
+versionCode=1
+author=MMM_Tasker
+description=Built with Tasker App</Str>
+			<Int sr="arg2" val="0"/>
+			<Int sr="arg3" val="1"/>
+		</Action>
+		<!-- Generate update-binary -->
+		<Action sr="act2" ve="7">
+			<code>410</code>
+			<Str sr="arg0" ve="3">%MMM_BASE_DIR/META-INF/com/google/android/update-binary</Str>
+			<Str sr="arg1" ve="3">#!/system/bin/sh
+MODPATH=${0%/*}</Str>
+			<Int sr="arg2" val="0"/>
+			<Int sr="arg3" val="1"/>
+		</Action>
+		<!-- ZIP Command -->
+		<Action sr="act3" ve="7">
+			<code>123</code>
+			<Str sr="arg0" ve="3">cd %MMM_BASE_DIR && zip -r ../%MMM_PROJECT_NAME.zip .</Str>
+			<Int sr="arg1" val="0"/>
+			<Int sr="arg2" val="0"/>
+			<Str sr="arg3" ve="3">%MMM_BUILD_LOG</Str>
+			<Str sr="arg4" ve="3">%MMM_BUILD_ERR</Str>
+			<Int sr="arg5" val="0"/>
+		</Action>
+		<Action sr="act4" ve="7">
+			<code>548</code>
+			<Str sr="arg0" ve="3">Build dokončen! Soubor: /sdcard/MagiskBuild/%MMM_PROJECT_NAME.zip</Str>
+			<Int sr="arg1" val="1"/>
+		</Action>
+	</Task>
+
+	<!-- SCENE: Main Dashboard -->
+	<Scene sr="sceneMain">
+		<cdate>1693910400000</cdate>
+		<nme>Main</nme>
+		<width>1080</width>
+		<height>1920</height>
+		<RectElement sr="elements0">
+			<flags>4</flags>
+			<geom>0,0,1080,1920</geom>
+			<nme>Background</nme>
+			<stroke>0</stroke>
+			<strokeColor>#FF212121</strokeColor>
+			<fillColor>#FF121212</fillColor>
+		</RectElement>
+		<TextElement sr="elements1">
+			<flags>4</flags>
+			<geom>50,100,980,150</geom>
+			<nme>Title</nme>
+			<text>Magisk Module Maker</text>
+			<textColor>#FFBB86FC</textColor>
+			<textSize>32</textSize>
+		</TextElement>
+		<ButtonElement sr="elements2">
+			<flags>4</flags>
+			<geom>100,1600,880,150</geom>
+			<nme>BuildButton</nme>
+			<label>SESTAVIT MODUL</label>
+			<clickTask>3</clickTask>
+		</ButtonElement>
+		<ButtonElement sr="elements3">
+			<flags>4</flags>
+			<geom>100,1400,880,150</geom>
+			<nme>AddButton</nme>
+			<label>PŘIDAT POLOŽKU</label>
+			<clickTask>2</clickTask>
+		</ButtonElement>
+	</Scene>
+
+	<!-- SCENE: Terminal Overlay -->
+	<Scene sr="sceneTerminal">
+		<cdate>1693910400000</cdate>
+		<nme>Terminal</nme>
+		<width>1000</width>
+		<height>800</height>
+		<RectElement sr="elements0">
+			<flags>4</flags>
+			<geom>0,0,1000,800</geom>
+			<nme>ConsoleBG</nme>
+			<fillColor>#EE000000</fillColor>
+		</RectElement>
+		<TextElement sr="elements1">
+			<flags>4</flags>
+			<geom>20,20,960,760</geom>
+			<nme>LogText</nme>
+			<text>%MMM_BUILD_LOG</text>
+			<textColor>#FF00FF00</textColor>
+			<textSize>14</textSize>
+		</TextElement>
+	</Scene>
+</TaskerData>
